@@ -9,9 +9,6 @@ import os
 import json
 import re
 import tempfile
-import whisper
-import yt_dlp
-import google.generativeai as genai
 from django.conf import settings
 
 
@@ -26,6 +23,7 @@ def download_audio(youtube_url: str, output_dir: str) -> str:
     Returns:
         Absoluter Pfad zur gespeicherten WAV-Datei.
     """
+    import yt_dlp
     output_template = os.path.join(output_dir, "audio.%(ext)s")
     ydl_opts = {
         "format": "bestaudio/best",
@@ -57,6 +55,7 @@ def transcribe_audio(audio_path: str) -> str:
     Returns:
         Transkribierter Text.
     """
+    import whisper
     model = whisper.load_model("base")
     result = model.transcribe(audio_path)
     return result["text"]
@@ -101,6 +100,7 @@ def generate_quiz_from_transcript(transcript: str) -> list:
     Returns:
         Liste mit Fragen-Dictionaries (question_title, question_options, answer).
     """
+    import google.generativeai as genai
     genai.configure(api_key=settings.GEMINI_API_KEY)
     model = genai.GenerativeModel("gemini-1.5-flash")
     prompt = build_quiz_prompt(transcript)
