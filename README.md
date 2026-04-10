@@ -1,52 +1,48 @@
 # Quizly Backend
 
-Backend für Quizly – ein Tool das aus YouTube-Videos automatisch Quizze generiert.
+This project was created as part of the Fullstack Developer training at Developer Akademie.
+The frontend was provided and can be found here: https://github.com/Developer-Akademie-Backendkurs/project.Quizly
 
-## Voraussetzungen
+Backend for Quizly – a tool that automatically generates quizzes from YouTube videos.
 
-**FFMPEG** muss global installiert sein (wird von Whisper AI benötigt):
+## Requirements
+
+**FFMPEG** must be installed globally – required by Whisper AI for audio processing.
 
 Windows:
-```powershell
 winget install --id Gyan.FFmpeg -e --source winget
-```
 
 macOS:
-```bash
 brew install ffmpeg
-```
 
 ## Setup
 
-```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-```
 
-`.env.example` zu `.env` umbenennen und ausfüllen:
+Rename .env.example to .env and fill in the values:
+
 SECRET_KEY=
 GEMINI_API_KEY=
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 
-Dann:
+Then:
 
-```powershell
 python manage.py migrate
 python manage.py runserver
-```
 
-## API Endpunkte
+## API Endpoints
 
-| Methode | Endpunkt | Beschreibung |
+| Method | Endpoint | Description |
 |---|---|---|
-| POST | `/api/register/` | Registrieren |
-| POST | `/api/login/` | Einloggen |
-| POST | `/api/logout/` | Ausloggen |
-| POST | `/api/token/refresh/` | Token erneuern |
-| GET | `/api/quizzes/` | Alle Quizze |
-| POST | `/api/quizzes/` | Quiz erstellen |
-| GET | `/api/quizzes/{id}/` | Quiz abrufen |
-| PATCH | `/api/quizzes/{id}/` | Quiz bearbeiten |
-| DELETE | `/api/quizzes/{id}/` | Quiz löschen |
+| POST | /api/register/ | Register |
+| POST | /api/login/ | Login |
+| POST | /api/logout/ | Logout |
+| POST | /api/token/refresh/ | Refresh token |
+| GET | /api/quizzes/ | Get all quizzes |
+| POST | /api/quizzes/ | Create quiz |
+| GET | /api/quizzes/{id}/ | Get single quiz |
+| PATCH | /api/quizzes/{id}/ | Update quiz |
+| DELETE | /api/quizzes/{id}/ | Delete quiz |
