@@ -102,7 +102,7 @@ def generate_quiz_from_transcript(transcript: str) -> list:
     """
     import google.generativeai as genai
     genai.configure(api_key=settings.GEMINI_API_KEY)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash-lite")
     prompt = build_quiz_prompt(transcript)
     response = model.generate_content(prompt)
     raw_text = response.text.strip()
