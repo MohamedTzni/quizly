@@ -11,25 +11,13 @@ from rest_framework_simplejwt.exceptions import TokenError
 
 from .models import Quiz, Question
 from .serializers import RegisterSerializer, QuizSerializer, QuizUpdateSerializer
-from .utils import process_youtube_url
-
-
-def set_auth_cookies(response, refresh):
-    """Sets access and refresh tokens as HTTP-only cookies."""
-    jwt = settings.SIMPLE_JWT
-    httponly = jwt["AUTH_COOKIE_HTTP_ONLY"]
-    samesite = jwt["AUTH_COOKIE_SAMESITE"]
-    secure = jwt["AUTH_COOKIE_SECURE"]
-    access_age = int(jwt["ACCESS_TOKEN_LIFETIME"].total_seconds())
-    refresh_age = int(jwt["REFRESH_TOKEN_LIFETIME"].total_seconds())
-    response.set_cookie(jwt["AUTH_COOKIE"], str(refresh.access_token), httponly=httponly, samesite=samesite, secure=secure, max_age=access_age)
-    response.set_cookie(jwt["REFRESH_COOKIE"], str(refresh), httponly=httponly, samesite=samesite, secure=secure, max_age=refresh_age)
-
-
-def delete_auth_cookies(response):
-    """Deletes the auth cookies from the response."""
-    response.delete_cookie(settings.SIMPLE_JWT["AUTH_COOKIE"])
-    response.delete_cookie(settings.SIMPLE_JWT["REFRESH_COOKIE"])
+from .utils import (
+    delete_auth_cookies,
+    is_youtube_url,
+    process_youtube_url,
+    remove_question_timestamps,
+    set_auth_cookies,
+)
 
 
 class RegisterView(APIView):
@@ -60,7 +48,10 @@ class LoginView(APIView):
             return Response({"detail": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
         refresh = RefreshToken.for_user(user)
         user_data = {"id": user.id, "username": user.username, "email": user.email}
-        response = Response({"detail": "Login successfully!", "user": user_data}, status=status.HTTP_200_OK)
+        response = Response(
+            {"detail": "Login successfully!", "user": user_data},
+            status=status.HTTP_200_OK,
+        )
         set_auth_cookies(response, refresh)
         return response
 
@@ -76,7 +67,10 @@ class LogoutView(APIView):
             token.blacklist()
         except TokenError:
             pass
-        response = Response({"detail": "Log-Out successfully! All Tokens will be deleted. Refresh token is now invalid."}, status=status.HTTP_200_OK)
+        response = Response(
+            {"detail": "Log-Out successfully! Tokens will be deleted."},
+            status=status.HTTP_200_OK,
+        )
         delete_auth_cookies(response)
         return response
 
@@ -97,7 +91,10 @@ class TokenRefreshView(APIView):
             set_auth_cookies(response, refresh)
             return response
         except TokenError:
-            return Response({"detail": "Invalid or expired refresh token."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"detail": "Invalid or expired refresh token."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
 
 class QuizListCreateView(APIView):
@@ -113,15 +110,36 @@ class QuizListCreateView(APIView):
         """Creates a quiz from a YouTube URL."""
         youtube_url = request.data.get("url", "").strip()
         if not youtube_url:
-            return Response({"detail": "A YouTube URL is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "A YouTube URL is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not is_youtube_url(youtube_url):
+            return Response(
+                {"detail": "Only YouTube URLs are allowed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             title, description, questions = process_youtube_url(youtube_url)
         except Exception as exc:
             clean_error = re.sub(r"\x1b\[[0-9;]*m", "", str(exc))
-            return Response({"detail": f"Error processing video: {clean_error}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        quiz = Quiz.objects.create(owner=request.user, title=title, description=description, video_url=youtube_url)
+            return Response(
+                {"detail": f"Error processing video: {clean_error}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        quiz = Quiz.objects.create(
+            owner=request.user,
+            title=title,
+            description=description,
+            video_url=youtube_url,
+        )
         for q in questions:
-            Question.objects.create(quiz=quiz, question_title=q["question_title"], question_options=q["question_options"], answer=q["answer"])
+            Question.objects.create(
+                quiz=quiz,
+                question_title=q["question_title"],
+                question_options=q["question_options"],
+                answer=q["answer"],
+            )
         serializer = QuizSerializer(quiz)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -156,7 +174,9 @@ class QuizDetailView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         serializer.save()
-        return Response(QuizSerializer(quiz).data, status=status.HTTP_200_OK)
+        data = QuizSerializer(quiz).data
+        data = remove_question_timestamps(data)
+        return Response(data, status=status.HTTP_200_OK)
 
     def delete(self, request, pk):
         """Deletes a quiz permanently."""

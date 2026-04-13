@@ -1,6 +1,4 @@
-"""
-URL-Konfiguration für die Quizly API.
-"""
+"""URL configuration for the Quizly API."""
 
 from django.urls import path
 from .views import (
