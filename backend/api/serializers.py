@@ -36,10 +36,20 @@ class RegisterSerializer(serializers.ModelSerializer):
 class QuestionSerializer(serializers.ModelSerializer):
     """Serializer for a single quiz question."""
 
+    answer = serializers.SerializerMethodField()
+
     class Meta:
         model = Question
         fields = ["id", "question_title", "question_options", "answer", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_answer(self, obj):
+        labels = ["A", "B", "C", "D"]
+        if obj.answer in labels:
+            answer_index = labels.index(obj.answer)
+            if answer_index < len(obj.question_options):
+                return obj.question_options[answer_index]
+        return obj.answer
 
 
 class QuizSerializer(serializers.ModelSerializer):
