@@ -8,23 +8,51 @@ from .models import Question, Quiz
 from .utils import is_youtube_url
 
 
+def get_question_options():
+    """Returns four simple answer options."""
+    return ["Option A", "Option B", "Option C", "Option D"]
+
+
+def get_question_data(number):
+    """Returns one question for mocked quiz generation."""
+    return {
+        "question_title": f"Question {number}",
+        "question_options": get_question_options(),
+        "answer": "Option A",
+    }
+
+
+def get_mock_questions():
+    """Returns 10 mocked quiz questions."""
+    questions = []
+    for number in range(10):
+        questions.append(get_question_data(number + 1))
+    return questions
+
+
 class QuizDetailPermissionTests(APITestCase):
     def setUp(self):
         self.owner = User.objects.create_user(username="owner", password="Test1234!")
         self.other_user = User.objects.create_user(username="other", password="Test1234!")
-        self.quiz = Quiz.objects.create(
+        self.quiz = self.create_quiz()
+        self.create_question()
+        self.url = reverse("quiz-detail", args=[self.quiz.id])
+
+    def create_quiz(self):
+        return Quiz.objects.create(
             owner=self.owner,
             title="Owner Quiz",
             description="Private quiz",
             video_url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         )
+
+    def create_question(self):
         Question.objects.create(
             quiz=self.quiz,
             question_title="Question 1",
-            question_options=["Option A", "Option B", "Option C", "Option D"],
+            question_options=get_question_options(),
             answer="Option A",
         )
-        self.url = reverse("quiz-detail", args=[self.quiz.id])
 
     def test_get_other_users_quiz_returns_403(self):
         self.client.force_authenticate(user=self.other_user)
@@ -50,13 +78,15 @@ class QuizDetailPermissionTests(APITestCase):
 
     def test_patch_own_quiz_returns_full_quiz_details(self):
         self.client.force_authenticate(user=self.owner)
-
         response = self.client.patch(
             self.url,
             {"title": "Partially Updated Title", "description": "Partially Updated Description"},
             format="json",
         )
+        self.assert_patch_quiz_fields(response)
+        self.assert_patch_question_fields(response)
 
+    def assert_patch_quiz_fields(self, response):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["title"], "Partially Updated Title")
         self.assertIn("created_at", response.data)
@@ -65,10 +95,12 @@ class QuizDetailPermissionTests(APITestCase):
             response.data["video_url"],
             "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         )
+
+    def assert_patch_question_fields(self, response):
         self.assertEqual(response.data["questions"][0]["question_title"], "Question 1")
         self.assertEqual(
             response.data["questions"][0]["question_options"],
-            ["Option A", "Option B", "Option C", "Option D"],
+            get_question_options(),
         )
         self.assertEqual(response.data["questions"][0]["answer"], "Option A")
         self.assertNotIn("created_at", response.data["questions"][0])
@@ -82,33 +114,20 @@ class QuizCreateTests(APITestCase):
 
     @patch("api.views.process_youtube_url")
     def test_create_quiz_returns_question_timestamps(self, mock_process_youtube_url):
-        questions = []
-        for number in range(10):
-            questions.append(
-                {
-                    "question_title": f"Question {number + 1}",
-                    "question_options": [
-                        "Option A",
-                        "Option B",
-                        "Option C",
-                        "Option D",
-                    ],
-                    "answer": "Option A",
-                }
-            )
-        mock_process_youtube_url.return_value = (
-            "Generated Quiz",
-            "Quiz Description",
-            questions,
-        )
+        questions = get_mock_questions()
+        mock_process_youtube_url.return_value = self.get_mock_quiz(questions)
         self.client.force_authenticate(user=self.owner)
-
         response = self.client.post(
             self.url,
             {"url": "https://www.youtube.com/watch?v=example"},
             format="json",
         )
+        self.assert_create_response(response)
 
+    def get_mock_quiz(self, questions):
+        return ("Generated Quiz", "Quiz Description", questions)
+
+    def assert_create_response(self, response):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("created_at", response.data["questions"][0])
         self.assertIn("updated_at", response.data["questions"][0])

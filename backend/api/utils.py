@@ -5,6 +5,8 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 
+from .models import Question, Quiz
+
 
 FFMPEG_PATH = os.getenv("FFMPEG_PATH", "")
 NODE_PATH = os.getenv("NODE_PATH", "")
@@ -16,26 +18,31 @@ if FFMPEG_PATH:
 def set_auth_cookies(response, refresh):
     """Sets access and refresh tokens as HTTP-only cookies."""
     jwt = settings.SIMPLE_JWT
-    httponly = jwt["AUTH_COOKIE_HTTP_ONLY"]
-    samesite = jwt["AUTH_COOKIE_SAMESITE"]
-    secure = jwt["AUTH_COOKIE_SECURE"]
-    access_age = int(jwt["ACCESS_TOKEN_LIFETIME"].total_seconds())
-    refresh_age = int(jwt["REFRESH_TOKEN_LIFETIME"].total_seconds())
+    set_access_cookie(response, refresh, jwt)
+    set_refresh_cookie(response, refresh, jwt)
+
+
+def set_access_cookie(response, refresh, jwt):
+    """Sets the access token cookie."""
     response.set_cookie(
         jwt["AUTH_COOKIE"],
         str(refresh.access_token),
-        httponly=httponly,
-        samesite=samesite,
-        secure=secure,
-        max_age=access_age,
+        httponly=jwt["AUTH_COOKIE_HTTP_ONLY"],
+        samesite=jwt["AUTH_COOKIE_SAMESITE"],
+        secure=jwt["AUTH_COOKIE_SECURE"],
+        max_age=int(jwt["ACCESS_TOKEN_LIFETIME"].total_seconds()),
     )
+
+
+def set_refresh_cookie(response, refresh, jwt):
+    """Sets the refresh token cookie."""
     response.set_cookie(
         jwt["REFRESH_COOKIE"],
         str(refresh),
-        httponly=httponly,
-        samesite=samesite,
-        secure=secure,
-        max_age=refresh_age,
+        httponly=jwt["AUTH_COOKIE_HTTP_ONLY"],
+        samesite=jwt["AUTH_COOKIE_SAMESITE"],
+        secure=jwt["AUTH_COOKIE_SECURE"],
+        max_age=int(jwt["REFRESH_TOKEN_LIFETIME"].total_seconds()),
     )
 
 
@@ -53,6 +60,27 @@ def remove_question_timestamps(data):
     return data
 
 
+def create_questions(quiz, questions):
+    """Saves all questions for one quiz."""
+    for question in questions:
+        Question.objects.create(
+            quiz=quiz,
+            question_title=question["question_title"],
+            question_options=question["question_options"],
+            answer=question["answer"],
+        )
+
+
+def create_quiz(user, youtube_url, title, description):
+    """Saves a quiz for the logged-in user."""
+    return Quiz.objects.create(
+        owner=user,
+        title=title,
+        description=description,
+        video_url=youtube_url,
+    )
+
+
 def is_youtube_url(youtube_url):
     """Checks if the given URL belongs to YouTube."""
     hostname = urlparse(youtube_url).hostname or ""
@@ -62,26 +90,33 @@ def is_youtube_url(youtube_url):
 
 def get_ydl_options(output_dir):
     """Returns the yt-dlp options for audio downloads."""
-    output_template = os.path.join(output_dir, "audio.%(ext)s")
     options = {
         "format": "bestaudio/best",
-        "outtmpl": output_template,
-        "postprocessors": [
-            {
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "wav",
-                "preferredquality": "192",
-            }
-        ],
+        "outtmpl": os.path.join(output_dir, "audio.%(ext)s"),
+        "postprocessors": [get_audio_postprocessor()],
         "quiet": True,
         "no_warnings": True,
     }
+    add_optional_ydl_paths(options)
+    return options
+
+
+def get_audio_postprocessor():
+    """Returns the yt-dlp audio postprocessor settings."""
+    return {
+        "key": "FFmpegExtractAudio",
+        "preferredcodec": "wav",
+        "preferredquality": "192",
+    }
+
+
+def add_optional_ydl_paths(options):
+    """Adds optional FFmpeg and Node paths to yt-dlp options."""
     if FFMPEG_PATH:
         options["ffmpeg_location"] = FFMPEG_PATH
     if NODE_PATH:
         options["js_runtimes"] = {"node": {"path": NODE_PATH}}
         options["remote_components"] = ["ejs:github"]
-    return options
 
 
 def download_audio(youtube_url, output_dir):

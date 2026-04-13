@@ -9,9 +9,11 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from .models import Quiz, Question
+from .models import Quiz
 from .serializers import RegisterSerializer, QuizSerializer, QuizUpdateSerializer
 from .utils import (
+    create_questions,
+    create_quiz,
     delete_auth_cookies,
     is_youtube_url,
     process_youtube_url,
@@ -48,10 +50,8 @@ class LoginView(APIView):
             return Response({"detail": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
         refresh = RefreshToken.for_user(user)
         user_data = {"id": user.id, "username": user.username, "email": user.email}
-        response = Response(
-            {"detail": "Login successfully!", "user": user_data},
-            status=status.HTTP_200_OK,
-        )
+        response_data = {"detail": "Login successfully!", "user": user_data}
+        response = Response(response_data, status=status.HTTP_200_OK)
         set_auth_cookies(response, refresh)
         return response
 
@@ -84,17 +84,20 @@ class TokenRefreshView(APIView):
         """Reads the refresh cookie and issues a new access token."""
         refresh_token = request.COOKIES.get(settings.SIMPLE_JWT["REFRESH_COOKIE"])
         if not refresh_token:
-            return Response({"detail": "Refresh token not found."}, status=status.HTTP_401_UNAUTHORIZED)
+            data = {"detail": "Refresh token not found."}
+            return Response(data, status=status.HTTP_401_UNAUTHORIZED)
         try:
-            refresh = RefreshToken(refresh_token)
-            response = Response({"detail": "Token refreshed"}, status=status.HTTP_200_OK)
-            set_auth_cookies(response, refresh)
-            return response
+            return self.create_refresh_response(refresh_token)
         except TokenError:
-            return Response(
-                {"detail": "Invalid or expired refresh token."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            data = {"detail": "Invalid or expired refresh token."}
+            return Response(data, status=status.HTTP_401_UNAUTHORIZED)
+
+    def create_refresh_response(self, refresh_token):
+        """Creates a new access token response."""
+        refresh = RefreshToken(refresh_token)
+        response = Response({"detail": "Token refreshed"}, status=status.HTTP_200_OK)
+        set_auth_cookies(response, refresh)
+        return response
 
 
 class QuizListCreateView(APIView):
@@ -110,15 +113,15 @@ class QuizListCreateView(APIView):
         """Creates a quiz from a YouTube URL."""
         youtube_url = request.data.get("url", "").strip()
         if not youtube_url:
-            return Response(
-                {"detail": "A YouTube URL is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            data = {"detail": "A YouTube URL is required."}
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
         if not is_youtube_url(youtube_url):
-            return Response(
-                {"detail": "Only YouTube URLs are allowed."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            data = {"detail": "Only YouTube URLs are allowed."}
+            return Response(data, status=status.HTTP_400_BAD_REQUEST)
+        return self.create_quiz_response(request, youtube_url)
+
+    def create_quiz_response(self, request, youtube_url):
+        """Creates the quiz and returns the API response."""
         try:
             title, description, questions = process_youtube_url(youtube_url)
         except Exception as exc:
@@ -127,19 +130,8 @@ class QuizListCreateView(APIView):
                 {"detail": f"Error processing video: {clean_error}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-        quiz = Quiz.objects.create(
-            owner=request.user,
-            title=title,
-            description=description,
-            video_url=youtube_url,
-        )
-        for q in questions:
-            Question.objects.create(
-                quiz=quiz,
-                question_title=q["question_title"],
-                question_options=q["question_options"],
-                answer=q["answer"],
-            )
+        quiz = create_quiz(request.user, youtube_url, title, description)
+        create_questions(quiz, questions)
         serializer = QuizSerializer(quiz)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
