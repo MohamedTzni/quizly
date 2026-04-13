@@ -1,0 +1,23 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+db.sqlite3
+media/
+*.wav
+*.mp3
+*.m4a
+venv/
+.venv/
+
+Quizly Checkliste.pdf
+quizly-endpoint-doku.png
+quizly-postman-collection.json
+frontend/
+quizly-logische-postman-collection.json
+backend/.env
+.env
+*.sqlite3
+.venv/
+backend/.venv/
+PROJEKT_DOKUMENTATION.md
