@@ -116,20 +116,6 @@ The backend does the following:
 6. Checks that Gemini returned exactly 10 questions.
 7. Saves the quiz and questions in the database.
 
-## API Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/register/` | Register a new user |
-| POST | `/api/login/` | Log in and set JWT cookies |
-| POST | `/api/logout/` | Log out, blacklist refresh token and delete cookies |
-| POST | `/api/token/refresh/` | Refresh the access token |
-| GET | `/api/quizzes/` | Get all quizzes of the logged-in user |
-| POST | `/api/quizzes/` | Create a new quiz from a YouTube URL |
-| GET | `/api/quizzes/{id}/` | Get one quiz |
-| PATCH | `/api/quizzes/{id}/` | Update quiz title and description |
-| DELETE | `/api/quizzes/{id}/` | Delete one quiz |
-
 ## Important Notes
 
 - Keep `.env`, `.venv` and `db.sqlite3` out of Git.
