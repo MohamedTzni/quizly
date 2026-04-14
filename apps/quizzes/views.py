@@ -33,7 +33,7 @@ class QuizListCreateView(APIView):
             return Response({"detail": "Only YouTube URLs are allowed."}, status=status.HTTP_400_BAD_REQUEST)
         try:
             title, description, questions = process_youtube_url(youtube_url)
-        except (ValueError, json.JSONDecodeError, OSError) as exc:
+        except Exception as exc:
             clean_error = re.sub(r"\x1b\[[0-9;]*m", "", str(exc))
             return Response({"detail": f"Error processing video: {clean_error}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         quiz = create_quiz_with_questions(request.user, youtube_url, title, description, questions)

@@ -91,12 +91,27 @@ def transcribe_audio(audio_path):
 
 
 def generate_quiz_from_transcript(transcript):
-    """Sends the transcript to Gemini and returns a list of questions."""
+    """Sends the transcript to Gemini and returns a list of questions.
+
+    Retries up to 3 times with exponential backoff when the API returns 503.
+    """
+    import time
     from google import genai
+    from google.genai import errors as genai_errors
 
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
     prompt = build_quiz_prompt(transcript)
-    response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
+
+    delays = [5, 10, 20]
+    for attempt, delay in enumerate(delays, start=1):
+        try:
+            response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+            break
+        except genai_errors.ServerError:
+            if attempt == len(delays):
+                raise
+            time.sleep(delay)
+
     raw_text = response.text.strip()
     cleaned = raw_text.replace("```json", "").replace("```", "").strip()
     questions = json.loads(cleaned)
