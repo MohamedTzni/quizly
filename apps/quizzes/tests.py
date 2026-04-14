@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from .models import Question, Quiz
-from .validators import is_youtube_url
+from .utils import is_youtube_url
 
 
 def get_question_options():

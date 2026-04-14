@@ -6,10 +6,10 @@ from rest_framework.views import APIView
 
 from .models import Quiz
 from .serializers import QuizSerializer, QuizUpdateSerializer
-from .generation import process_youtube_url
 from .services import (
     create_quiz_with_questions,
     get_quiz_for_user,
+    process_youtube_url,
     remove_question_timestamps,
 )
 from .utils import is_youtube_url

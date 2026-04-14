@@ -46,7 +46,6 @@ quizly/
       views.py
     quizzes/
       admin.py
-      generation.py
       models.py
       serializers.py
       services.py
@@ -65,7 +64,6 @@ quizly/
 - Python 3.10+
 - FFmpeg installed globally
 - Gemini API key
-- Optional: Node.js, if YouTube requires a JavaScript runtime for `yt-dlp`
 
 Install FFmpeg on Windows:
 
@@ -115,8 +113,6 @@ SECRET_KEY=your-django-secret-key-here
 DEBUG=True
 GEMINI_API_KEY=your-gemini-api-key-here
 ALLOWED_HOSTS=localhost,127.0.0.1
-FFMPEG_PATH=
-NODE_PATH=
 ```
 
 You can create a Gemini API key here:
