@@ -3,7 +3,7 @@
 Quizly is a Django REST API for creating quizzes from YouTube videos. A user submits a YouTube URL, the backend extracts the audio, transcribes it locally with Whisper and asks Gemini to generate quiz questions from the transcript.
 
 The matching frontend template is provided by Developer Akademie:
-https://github.com/Developer-Akademie-Backendkurs/project.Quizly
+<https://github.com/Developer-Akademie-Backendkurs/project.Quizly>
 
 ## What The Backend Does
 
@@ -32,7 +32,7 @@ Each generated quiz contains 10 questions with 4 answer options.
 ## Project Structure
 
 ```text
-backend/
+quizly/
   core/
     settings.py
     urls.py
@@ -40,7 +40,7 @@ backend/
   apps/
     accounts/
       authentication.py
-      cookies.py
+      utils.py
       serializers.py
       urls.py
       views.py
@@ -52,9 +52,11 @@ backend/
       services.py
       tests.py
       urls.py
-      validators.py
+      utils.py
   manage.py
   requirements.txt
+  .env
+  .env.template
 ```
 
 `core` contains the Django project configuration. `accounts` handles registration, login, logout, token refresh and cookie-based JWT authentication. `quizzes` contains the quiz domain, including models, API views, database services, validation and the YouTube-to-quiz generation pipeline.
@@ -119,7 +121,7 @@ NODE_PATH=
 ```
 
 You can create a Gemini API key here:
-https://aistudio.google.com
+<https://aistudio.google.com>
 
 Run migrations:
 
@@ -199,7 +201,7 @@ The login response sets JWT cookies automatically. When testing with Postman or 
 Clone the frontend template separately:
 
 ```powershell
-git clone https://github.com/Developer-Akademie-Backendkurs/project.Quizly frontend
+git clone <https://github.com/Developer-Akademie-Backendkurs/project.Quizly> frontend
 ```
 
 Open it with Live Server in VS Code. The frontend expects the backend at:
