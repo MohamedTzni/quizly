@@ -129,6 +129,18 @@ Run migrations:
 python manage.py migrate
 ```
 
+Create a superuser for the Django admin:
+
+```powershell
+python manage.py createsuperuser
+```
+
+Follow the prompts and enter a username, email address and password. You can then log in to the Django admin at:
+
+```text
+http://127.0.0.1:8000/admin/
+```
+
 Start the backend:
 
 ```powershell
