@@ -10,9 +10,4 @@ __pycache__/
 *.mp3
 *.m4a
 media/
-backend/.env
-backend/.venv/
-backend/venv/
-backend/db.sqlite3
-backend/media/
 
