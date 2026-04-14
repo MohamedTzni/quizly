@@ -26,7 +26,8 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
-    "api",
+    "apps.accounts.apps.AccountsConfig",
+    "apps.quizzes.apps.QuizzesConfig",
 ]
 
 MIDDLEWARE = [
@@ -40,7 +41,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "quizly.urls"
+ROOT_URLCONF = "core.urls"
 
 TEMPLATES = [
     {
@@ -58,7 +59,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "quizly.wsgi.application"
+WSGI_APPLICATION = "core.wsgi.application"
 
 DATABASES = {
     "default": {
@@ -92,7 +93,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "api.authentication.CookieJWTAuthentication",
+        "apps.accounts.authentication.CookieJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
@@ -108,7 +109,7 @@ SIMPLE_JWT = {
     "REFRESH_COOKIE": "refresh_token",
     "AUTH_COOKIE_HTTP_ONLY": True,
     "AUTH_COOKIE_SAMESITE": "Lax",
-    "AUTH_COOKIE_SECURE": False,
+    "AUTH_COOKIE_SECURE": not DEBUG,
 }
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")

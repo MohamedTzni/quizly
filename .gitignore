@@ -1,0 +1,17 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.sqlite3
+*.log
+*.wav
+*.mp3
+*.m4a
+media/
+backend/.env
+backend/.venv/
+backend/venv/
+backend/db.sqlite3
+backend/media/
