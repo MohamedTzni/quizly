@@ -55,7 +55,6 @@ quizly/
       utils.py
   manage.py
   requirements.txt
-  .env
   .env.template
 ```
 
