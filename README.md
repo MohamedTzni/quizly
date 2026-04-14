@@ -107,13 +107,19 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Copy `.env.template` to `.env` and fill in the values:
+Erstelle eine `.env`-Datei, indem du die `.env.template` kopierst:
 
 ```powershell
 cp .env.template .env
 ```
 
-Each variable is documented with a comment directly inside `.env.template`.
+Auf macOS/Linux:
+
+```bash
+cp .env.template .env
+```
+
+Öffne die `.env` und ersetze alle Platzhalterwerte durch deine eigenen Daten. Jede Variable ist direkt in der `.env.template` mit einem Kommentar erklärt.
 
 Run migrations:
 
