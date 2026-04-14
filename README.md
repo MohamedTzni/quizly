@@ -106,14 +106,19 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Create a `.env` file inside `backend/`:
+Create a `.env` file by copying the template:
 
-```env
-SECRET_KEY=your-django-secret-key-here
-DEBUG=True
-GEMINI_API_KEY=your-gemini-api-key-here
-ALLOWED_HOSTS=localhost,127.0.0.1
+```powershell
+copy .env.template .env
 ```
+
+On macOS/Linux:
+
+```bash
+cp .env.template .env
+```
+
+Open `.env` and replace every placeholder from `.env.template` with your real local values. Keep `.env` private and do not commit it.
 
 You can create a Gemini API key here:
 <https://aistudio.google.com>
