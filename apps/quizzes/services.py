@@ -1,6 +1,7 @@
 import json
 import os
-import tempfile
+import shutil
+import uuid
 
 from django.conf import settings
 from rest_framework.exceptions import PermissionDenied
@@ -9,30 +10,55 @@ from .models import Question, Quiz
 from .utils import is_youtube_url
 
 
+YTDLP_RETRIES = 2
+YTDLP_SOCKET_TIMEOUT_SECONDS = 20
+GEMINI_TIMEOUT_SECONDS = 60
+
+
+def log_quiz_step(message):
+    """Writes progress for long-running quiz generation requests."""
+    print(f"[quiz] {message}", flush=True)
+
+
 def process_youtube_url(youtube_url):
     """Full pipeline: downloads audio, transcribes it, and generates a quiz."""
     if not is_youtube_url(youtube_url):
         raise ValueError("Only YouTube URLs are allowed.")
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        audio_path = download_audio(youtube_url, tmp_dir)
+    log_quiz_step("Starting quiz generation")
+    tmp_dir = create_quiz_temp_dir()
+    try:
+        audio_path, video_title = download_audio(youtube_url, tmp_dir)
         transcript = transcribe_audio(audio_path)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
     questions = generate_quiz_from_transcript(transcript)
-    video_id = youtube_url.split("v=")[-1]
-    title = f"Quiz - {video_id}"
+    title = f"Quiz - {video_title}" if video_title else "Quiz"
     description = transcript[:200].strip() + "..."
     return title, description, questions
 
 
+def create_quiz_temp_dir():
+    """Creates a temporary quiz folder inside Django's media directory."""
+    tmp_dir = settings.MEDIA_ROOT / "quiz_tmp" / uuid.uuid4().hex
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    return str(tmp_dir)
+
+
 def download_audio(youtube_url, output_dir):
-    """Downloads YouTube audio as a WAV file."""
+    """Downloads YouTube audio as a WAV file and returns its video title."""
     import yt_dlp
 
+    log_quiz_step("Reading YouTube metadata")
     ydl_opts = get_ydl_options(output_dir)
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(youtube_url, download=False)
+        log_quiz_step("Downloading YouTube audio")
         ydl.download([youtube_url])
-    return os.path.join(output_dir, "audio.wav")
+    video_title = info.get("title", "") if info else ""
+    log_quiz_step("YouTube audio downloaded")
+    return os.path.join(output_dir, "audio.wav"), video_title
 
 
 def get_ydl_options(output_dir):
@@ -43,6 +69,13 @@ def get_ydl_options(output_dir):
         "postprocessors": [get_audio_postprocessor()],
         "quiet": True,
         "no_warnings": True,
+        "noplaylist": True,
+        "proxy": "",
+        "continuedl": False,
+        "socket_timeout": YTDLP_SOCKET_TIMEOUT_SECONDS,
+        "retries": YTDLP_RETRIES,
+        "fragment_retries": YTDLP_RETRIES,
+        "extractor_retries": YTDLP_RETRIES,
     }
 
 
@@ -59,8 +92,11 @@ def transcribe_audio(audio_path):
     """Transcribes an audio file using Whisper AI."""
     import whisper
 
+    log_quiz_step("Loading Whisper model")
     model = whisper.load_model("base")
+    log_quiz_step("Transcribing audio")
     result = model.transcribe(audio_path)
+    log_quiz_step("Audio transcribed")
     return result["text"]
 
 
@@ -68,7 +104,11 @@ def generate_quiz_from_transcript(transcript):
     """Sends the transcript to Gemini and returns a list of questions."""
     from google import genai
 
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    log_quiz_step("Generating questions with Gemini")
+    client = genai.Client(
+        api_key=settings.GEMINI_API_KEY,
+        http_options={"timeout": GEMINI_TIMEOUT_SECONDS * 1000},
+    )
     prompt = build_quiz_prompt(transcript)
     response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
     raw_text = response.text.strip()
@@ -78,6 +118,7 @@ def generate_quiz_from_transcript(transcript):
     questions = json.loads(cleaned)
     if len(questions) != 10:
         raise ValueError("Gemini must return exactly 10 questions.")
+    log_quiz_step("Questions generated")
     return questions
 
 
