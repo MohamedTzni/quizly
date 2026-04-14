@@ -46,6 +46,7 @@ quizly/
       views.py
     quizzes/
       admin.py
+      generation.py
       models.py
       serializers.py
       services.py
@@ -107,30 +108,24 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Create a `.env` file by copying the template:
+Create a `.env` file inside `backend/`:
 
-```powershell
-cp .env.template .env
+```env
+SECRET_KEY=your-django-secret-key-here
+DEBUG=True
+GEMINI_API_KEY=your-gemini-api-key-here
+ALLOWED_HOSTS=localhost,127.0.0.1
+FFMPEG_PATH=
+NODE_PATH=
 ```
 
-On macOS/Linux:
-
-```bash
-cp .env.template .env
-```
-
-Open the `.env` file and replace all placeholder values with your own. Each variable is documented with a comment inside `.env.template`.
+You can create a Gemini API key here:
+<https://aistudio.google.com>
 
 Run migrations:
 
 ```powershell
 python manage.py migrate
-```
-
-Create a superuser to access the Django admin panel at `/admin/`:
-
-```powershell
-python manage.py createsuperuser
 ```
 
 Start the backend:
